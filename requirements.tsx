@@ -1,5 +1,6 @@
 streamlit
 pandas
-numpy
 plotly
-altair
+numpy
+matplotlib
+plotly==5.19.0 
