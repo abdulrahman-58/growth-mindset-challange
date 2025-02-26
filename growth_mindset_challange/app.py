@@ -235,25 +235,38 @@ if uploaded_file:
             fig = px.scatter(df, x=x_axis, y=y_axis, color=df.columns[1] if len(df.columns) > 1 else None)
             st.plotly_chart(fig, use_container_width=True)
 
-    with col2:
-        st.subheader("📊 Altair Chart")
-        categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        if len(numeric_columns) > 1:
-            x_axis = st.selectbox("Choose X-axis for Altair", numeric_columns, key="altair_x")
-            y_axis = st.selectbox("Choose Y-axis for Altair", numeric_columns, key="altair_y")
-            color_column = st.selectbox("Choose Color Column", [None] + categorical_columns, key="altair_color")
-            
-            if color_column:
-                df[color_column] = df[color_column].astype(str).fillna("Unknown")
-            
-            chart = alt.Chart(df).mark_circle(size=60).encode(
-                x=alt.X(x_axis, type="quantitative"),
-                y=alt.Y(y_axis, type="quantitative"),
-                color=alt.Color(color_column, type="nominal") if color_column else alt.value("gray"),
-                tooltip=[x_axis, y_axis] + ([color_column] if color_column else [])
-            ).interactive()
-            
-            st.altair_chart(chart, use_container_width=True)
+   with col2:
+    st.subheader("📊 Altair Chart")
+    categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    if len(numeric_columns) > 1:
+        x_axis = st.selectbox("Choose X-axis for Altair", numeric_columns, key="altair_x")
+        y_axis = st.selectbox("Choose Y-axis for Altair", numeric_columns, key="altair_y")
+        color_column = st.selectbox("Choose Color Column", [None] + categorical_columns, key="altair_color")
+
+        # ✅ چیک کریں کہ منتخب کردہ کالمز خالی نہ ہوں
+        if df[x_axis].isnull().all() or df[y_axis].isnull().all():
+            st.error("❌ The selected columns contain only missing values. Please choose another column.")
+            st.stop()
+        
+        # ✅ X اور Y کالمز کو numeric میں تبدیل کریں
+        df[x_axis] = pd.to_numeric(df[x_axis], errors="coerce")
+        df[y_axis] = pd.to_numeric(df[y_axis], errors="coerce")
+
+        # ✅ Color Column کو string میں تبدیل کریں (اگر منتخب کیا گیا ہے)
+        if color_column:
+            df[color_column] = df[color_column].astype(str).fillna("Unknown")
+
+        # 📊 Altair چارٹ بنائیں
+        chart = alt.Chart(df).mark_circle(size=60).encode(
+            x=alt.X(x_axis, type="quantitative", title=x_axis),
+            y=alt.Y(y_axis, type="quantitative", title=y_axis),
+            color=alt.Color(color_column, type="nominal", title=color_column) if color_column else alt.value("gray"),
+            tooltip=[x_axis, y_axis] + ([color_column] if color_column else [])
+        ).interactive()
+
+        st.altair_chart(chart, use_container_width=True)
+
 
     # 🛠 File Conversion
     st.sidebar.subheader("🔄 Convert File Format")
